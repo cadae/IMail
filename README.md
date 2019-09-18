@@ -20,9 +20,14 @@ Note: All requests send to IRIS at port 52774
 
 ## Google Colab
 1. Open the Email_Intelligence.ipynb on Google Colab.
-2. The training required dataset will be available at [Google Drive](https://drive.google.com/file/d/1dhuyFJenfWrqqeXOxjWLqcgALNShpoS6/view?usp=sharing)
+2. The training required dataset (Enron and Apache) is available at [Google Drive](https://drive.google.com/file/d/1dhuyFJenfWrqqeXOxjWLqcgALNShpoS6/view?usp=sharing)
+
+Upload the dataset to Google drive and change the pd.read_csv() to your directory in Google Drive (recommanded)
+
 3. Select Runtime as Python 3 and GPU.
-4. Run all code cells one by one and follow the instruction/explaination provided in the ipynb file
+4. Run all code cells in order (important) up until the Evaluation section (if you just want to get the model file, don't have to do any evalutaion of the model)
+
+Instructions/explainations of each cell are provided in the ipynb file.
 
 Additional steps may require if you want to use [Google Cloud Bucket](https://cloud.google.com/storage/docs/json_api/v1/buckets)
 
