@@ -29,19 +29,29 @@ Additional steps may require if you want to use [Google Cloud Bucket](https://cl
 ## Model Serving
 1. Install Python 3.6 (It's very important that you have installed the correct version of Python)
 2. Install all required libraries
+
    `pip install tensorflow`
+   
    `pip install flask`
+   
    `pip install bert`
+   
    `pip install pandas`
+   
    `pip install scikit-learn`
+   
 3. have your trained model in the correct folder and change the OUTPUT_DIR in the serving.py to your location
 Recommond to download BERT base model to local as well so that you don't have to re-download the model every time it runs
 Download every files in the Google Bucket after the initial training, for example:
 
 checkpoint
+
 graph.pbtxt
+
 model.ckpt-4503.data-00000-of-00001
+
 model.ckpt-4503.index
+
 model.ckpt-4503.meta
    
 3. Execute the serving.py
@@ -50,13 +60,16 @@ It will start listening on port 5000
 1. POST to http://localhost:5000/predict
 Make prediction
 Request body contains json with the following format:
-{
+
+`{
     "raw": "String that you want to classify"
-}
+}`
+
 2. POST to http://localhost:5000/train
 Incremental training
 Request body contains json with the following format: 
-{
+
+`{
     "text":["The phone I was purchasing yesterday on the website got a great discount","Purchasing phones from our website now and you can get a great discount"],
     "spam":[0,1]
-}
+}`
