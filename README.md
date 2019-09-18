@@ -41,7 +41,9 @@ Additional steps may require if you want to use [Google Cloud Bucket](https://cl
    `pip install scikit-learn`
    
 3. have your trained model in the correct folder and change the OUTPUT_DIR in the serving.py to your location
-Recommond to download BERT base model to local as well so that you don't have to re-download the model every time it runs
+
+Recommond to download BERT base model to local as well so that you don't have to re-download the model every time it runs.
+
 Download every files in the Google Bucket after the initial training, for example:
 
 checkpoint
@@ -58,7 +60,9 @@ model.ckpt-4503.meta
 It will start listening on port 5000
 ## Serving Route:
 1. POST to http://localhost:5000/predict
+
 Make prediction
+
 Request body contains json with the following format:
 
 `{
@@ -66,7 +70,9 @@ Request body contains json with the following format:
 }`
 
 2. POST to http://localhost:5000/train
+
 Incremental training
+
 Request body contains json with the following format: 
 
 `{
