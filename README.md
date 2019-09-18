@@ -12,11 +12,12 @@ Additional steps before runing:
 1. Register as Google developer and create and application and enable Gmail API access to the application [Gmail API Quickstart](https://developers.google.com/gmail/api/quickstart/nodejs)
 2. Replace the Client ID and API key in the gmail_controller.js in public/js/controllers
 
-Note: All requests send to IRIS at port 52774
+Note: All requests send to IRIS at port 52774, change it before you run the application
 
 ## IRIS 
 1. Create a Namespace 
 2. Import EmailIntel.xml which includes all classes and interoperability.
+3. Create a Web appication in IRIS using class RESTOperations.cls
 
 ## Google Colab
 1. Open the Email_Intelligence.ipynb on Google Colab.
