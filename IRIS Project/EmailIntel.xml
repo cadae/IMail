@@ -1,0 +1,2144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26">
+<Class name="Email.CheckDataset">
+<Super>Ens.BusinessOperation</Super>
+<TimeCreated>65267,43684.442742</TimeCreated>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Method name="CheckSizeOfDataset">
+<FormalSpec>pRequest:Email.CheckDatasetRequest,pResponse:Email.CheckDatasetResponse</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set pResponse = ##class(Email.CheckDatasetResponse).%New()
+	
+	set tSC = ##class(Email.TrainingDataset).RetrieveDatasetLength(pRequest.IsTrained)
+	
+	set pResponse.SizeOfDataset = tSC
+	
+	quit $$$OK
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+    <MapItem MessageType="Email.CheckDatasetRequest">
+        <Method>CheckSizeOfDataset</Method>
+    </MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="Email.CheckDatasetRequest">
+<Super>Ens.Request</Super>
+<TimeCreated>65267,43526.741909</TimeCreated>
+
+<Property name="IsTrained">
+<Type>%Boolean</Type>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>CheckDatasetRequestDefaultData</DefaultData>
+<Data name="CheckDatasetRequestDefaultData">
+<Structure>listnode</Structure>
+<Subscript>"CheckDatasetRequest"</Subscript>
+<Value name="1">
+<Value>IsTrained</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.CheckDatasetResponse">
+<Super>Ens.Response</Super>
+<TimeCreated>65267,43841.656053</TimeCreated>
+
+<Property name="SizeOfDataset">
+<Type>%Integer</Type>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>CheckDatasetResponseDefaultData</DefaultData>
+<Data name="CheckDatasetResponseDefaultData">
+<Subscript>"CheckDatasetResponse"</Subscript>
+<Value name="1">
+<Value>SizeOfDataset</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.CheckEmailStatusRequest">
+<Super>Ens.Request</Super>
+<TimeCreated>65268,33141.034947</TimeCreated>
+
+<Property name="Date">
+<Type>%Date</Type>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>CheckEmailStatusRequestDefaultData</DefaultData>
+<Data name="CheckEmailStatusRequestDefaultData">
+<Structure>listnode</Structure>
+<Subscript>"CheckEmailStatusRequest"</Subscript>
+<Value name="1">
+<Value>Date</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.CheckEmailStatusResponse">
+<Super>Ens.Response</Super>
+<TimeCreated>65268,34474.031603</TimeCreated>
+
+<Property name="Date">
+<Type>%Date</Type>
+</Property>
+
+<Property name="SpamEmails">
+<Type>%DynamicObject</Type>
+</Property>
+
+<Property name="FlaggedEmails">
+<Type>%DynamicObject</Type>
+</Property>
+
+<Property name="Statistics">
+<Type>%DynamicObject</Type>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>CheckEmailStatusResponseDefaultData</DefaultData>
+<Data name="CheckEmailStatusResponseDefaultData">
+<Subscript>"CheckEmailStatusResponse"</Subscript>
+<Value name="1">
+<Value>Date</Value>
+</Value>
+</Data>
+<Data name="FlaggedEmails">
+<Attribute>FlaggedEmails</Attribute>
+<Structure>node</Structure>
+<Subscript>"Email.CheckEmailStatusResponse.FlaggedEmails"</Subscript>
+</Data>
+<Data name="SpamEmails">
+<Attribute>SpamEmails</Attribute>
+<Structure>node</Structure>
+<Subscript>"Email.CheckEmailStatusResponse.SpamEmails"</Subscript>
+</Data>
+<Data name="Statistics">
+<Attribute>Statistics</Attribute>
+<Structure>node</Structure>
+<Subscript>"Email.CheckEmailStatusResponse.Statistics"</Subscript>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.DailyReport">
+<Super>Ens.BusinessService</Super>
+<TimeCreated>65268,32971.491897</TimeCreated>
+
+<Method name="OnProcessInput">
+<FormalSpec>pInput:%RegisteredObject,*pOutput:%RegisteredObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set tRequest = ##class(Email.CheckEmailStatusRequest).%New()
+	
+	set tRequest.Date = $PIECE($HOROLOG, ",", 1)
+	
+	Set tSC = ..SendRequestAsync("Email.GenerateReport",tRequest)
+	
+	return $$$OK
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="Email.DetermineTraining">
+<Description>
+</Description>
+<ClassType>persistent</ClassType>
+<ProcedureBlock>1</ProcedureBlock>
+<Super>Ens.BusinessProcessBPL</Super>
+<TimeCreated>65267,49907.174565</TimeCreated>
+
+<XData name="BPL">
+<Description>
+BPL Definition</Description>
+<XMLNamespace>http://www.intersystems.com/bpl</XMLNamespace>
+<Data><![CDATA[
+<process language='objectscript' request='Email.CheckDatasetRequest' response='Email.CheckDatasetResponse' height='2000' width='2000' >
+<sequence xend='200' yend='800' >
+<call name='Get Size of Dataset' target='Email.CheckDataset' async='1' xpos='200' ypos='250' >
+<request type='Email.CheckDatasetRequest' >
+<assign property="callrequest.IsTrained" value="request.IsTrained" action="set" />
+</request>
+<response type='Email.CheckDatasetResponse' >
+<assign property="response.SizeOfDataset" value="callresponse.SizeOfDataset" action="set" />
+</response>
+</call>
+<sync name='Wait for Response' calls='Get Size of Dataset' type='all' xpos='200' ypos='350' />
+<if name='Check Condition' condition='response.SizeOfDataset &gt; 64' xpos='200' ypos='450' xend='200' yend='700' >
+<true>
+<call name='Do Incremental Training' target='Email.TrainModel' async='1' xpos='335' ypos='600' >
+<request type='Email.Request.OutboundPost' >
+<assign property="callrequest.LengthOfDataset" value="response.SizeOfDataset" action="set" />
+</request>
+<response type='Ens.Response' />
+</call>
+</true>
+</if>
+</sequence>
+</process>
+]]></Data>
+</XData>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+</Storage>
+</Class>
+
+
+<Class name="Email.EmailIntelligence">
+<Super>Ens.Production</Super>
+<TimeCreated>65247,36776.438818</TimeCreated>
+
+<XData name="ProductionDefinition">
+<Data><![CDATA[
+<Production Name="Email.EmailIntelligence" TestingEnabled="true" LogGeneralTraceEvents="false">
+  <Description></Description>
+  <ActorPoolSize>2</ActorPoolSize>
+  <Item Name="Email.ScanDataset" Category="" ClassName="Email.ScanDataset" PoolSize="0" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Adapter" Name="CallInterval">1000</Setting>
+  </Item>
+  <Item Name="Email.CheckDataset" Category="" ClassName="Email.CheckDataset" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="Email.TrainModel" Category="" ClassName="Email.TrainModel" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Adapter" Name="HTTPPort">5000</Setting>
+    <Setting Target="Adapter" Name="HTTPServer">localhost</Setting>
+    <Setting Target="Adapter" Name="URL">/train</Setting>
+  </Item>
+  <Item Name="Email.DetermineTraining" Category="" ClassName="Email.DetermineTraining" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="Email.DailyReport" Category="" ClassName="Email.DailyReport" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Adapter" Name="CallInterval">10</Setting>
+  </Item>
+  <Item Name="Email.GetStatistics" Category="" ClassName="Email.GetStatistics" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="Email.SendDailyReport" Category="" ClassName="Email.SendDailyReport" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
+    <Setting Target="Adapter" Name="SMTPPort">465</Setting>
+    <Setting Target="Adapter" Name="SMTPServer">smtp.gmail.com</Setting>
+    <Setting Target="Adapter" Name="SSLConfig">GMAIL</Setting>
+    <Setting Target="Adapter" Name="From">gcao3822@gmail.com</Setting>
+    <Setting Target="Adapter" Name="Recipient">gcao3822@gmail.com</Setting>
+    <Setting Target="Adapter" Name="Credentials">GMAIL</Setting>
+  </Item>
+  <Item Name="Email.GenerateReport" Category="" ClassName="Email.GenerateReport" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+</Production>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="Email.EmailList">
+<Super>%Persistent,%Populate,%XML.Adaptor,%JSON.Adaptor</Super>
+<TimeCreated>65244,52792.914704</TimeCreated>
+
+<Property name="Address">
+<Type>%String</Type>
+<Required>1</Required>
+<Parameter name="MAXLEN" value="100"/>
+</Property>
+
+<Property name="MessageId">
+<Type>%String</Type>
+<Required>1</Required>
+</Property>
+
+<Property name="Label">
+<Type>%String</Type>
+<Required>1</Required>
+<Parameter name="DISPLAYLIST" value="-INBOX-SPAM-FLAGGED-SENT"/>
+<Parameter name="VALUELIST" value="-1-2-3-4"/>
+</Property>
+
+<Property name="Subject">
+<Type>%String</Type>
+<Parameter name="MAXLEN" value="1000"/>
+</Property>
+
+<Property name="Content">
+<Type>%String</Type>
+<Parameter name="MAXLEN" value="100000"/>
+</Property>
+
+<Property name="ReceiveDate">
+<Type>%Date</Type>
+<Required>1</Required>
+</Property>
+
+<Property name="Probability">
+<Type>%Float</Type>
+</Property>
+
+<Method name="SetProbability">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>MessageId:%String,Probability:%Float</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set id = ##class(Email.EmailList).SearchMessageID(MessageId)
+	
+	set email = ##class(Email.EmailList).%OpenId(id)
+	
+	set email.Probability = Probability
+	
+	set status = email.%Save()
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="SetEmailLabel">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>MessageId:%String,Label:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set id = ##class(Email.EmailList).SearchMessageID(MessageId)
+	
+	set email = ##class(Email.EmailList).%OpenId(id)
+	
+	set email.Label = Label
+	
+	set status = email.%Save()
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="AddNewEmail">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Address:%String,Label:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	
+	set status = $$$OK
+	
+	set email = ##class(Email.EmailList).%New()
+	
+	set email.Address = Address
+	
+	set email.ReceiveDate = $PIECE($HOROLOG, ",", 1)
+	
+	set email.Label = Label
+	
+	set status = email.%Save()
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="DeleteEmail">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>EmailID:%Integer</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set status = ##class(Email.EmailList).%DeleteId(EmailID)
+
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="UpdateLabel">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>EmailID:%Integer,Label:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	
+	set status = $$$OK
+	
+	set email = ##class(Email.EmailList).%OpenId(EmailID)
+	
+	set email.Label = Label
+	
+	if Label = "1"
+	{
+		do ##class(Email.SPAMAddress).AddNewSPAM(email.Address)	
+	}
+	elseif Label = "2"
+	{
+		set ID = ##class(Email.SPAMAddress).SearchSPAMaddress(email.Address)
+		
+		if ID '= 0 {
+		do ##class(Email.SPAMAddress).DeleteSPAM(ID)
+		}
+	}
+	elseif Label = "3"
+	{
+		/// do some machine learning stuff	
+	}
+	
+	set status = email.%Save()
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="SearchEmailID">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Address:%String</FormalSpec>
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+	TRY{
+		&sql(declare EC1 cursor for SELECT ID FROM Email.EmailList where Address = :Address)
+		&sql(open EC1)
+		for {
+			&sql(fetch EC1 into :id)
+			quit:(SQLCODE '= 0)
+		}
+		&sql(close EC1)
+		
+		if id {
+			return id
+		}
+	}
+	CATCH e {
+		return 0
+	}
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="SearchMessageID">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>MessageId:%String</FormalSpec>
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+	TRY{
+		&sql(declare EC2 cursor for SELECT ID FROM Email.EmailList where MessageId = :MessageId)
+		&sql(open EC2)
+		for {
+			&sql(fetch EC2 into :id)
+			quit:(SQLCODE '= 0)
+		}
+		&sql(close EC2)
+		
+		if id {
+			return id
+		}
+	}
+	CATCH e {
+		return 0
+	}
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveEmailListwithLabel">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>StartDate:%Date,EndDate:%Date,Label:%String</FormalSpec>
+<ReturnType>%DynamicObject</ReturnType>
+<Implementation><![CDATA[
+	TRY
+	{
+		&sql(declare EC0 cursor for SELECT MessageId, Address, Subject, ReceiveDate, Probability FROM Email.EmailList WHERE Label = :Label AND ReceiveDate BETWEEN :StartDate AND :EndDate ORDER BY ReceiveDate)
+		&sql(open EC0)
+		set EmailList = {"Emails": []}
+		for {
+			&sql(fetch EC0 into :messageid, :address, :subject, :receivedate, :probability)
+			quit:(SQLCODE '= 0)
+			set Emails = {}, Emails.MessageId = messageid, Emails.Address = address, Emails.Subject = subject, Emails.ReceiveDate = $ZDATETIME(receivedate), Emails.Probability = probability
+			do EmailList.Emails.%Push(Emails)
+		}
+		&sql(close EC0)
+		return EmailList
+	}
+	CATCH error {
+		zw error
+	}
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveEmailStatistics">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>StartDate:%Date,EndDate:%Date</FormalSpec>
+<ReturnType>%DynamicObject</ReturnType>
+<Implementation><![CDATA[
+	TRY
+	{
+		&sql(declare EC3 cursor for SELECT Label, COUNT(MessageId) FROM Email.EmailList WHERE ReceiveDate BETWEEN :StartDate AND :EndDate GROUP BY Label)
+		&sql(open EC3)
+		set EmailList = {"Emails": []}
+		for {
+			&sql(fetch EC3 into :label, :count)
+			quit:(SQLCODE '= 0)
+			set Emails = {}, Emails.Label = label, Emails.Count = count
+			do EmailList.Emails.%Push(Emails)
+		}
+		&sql(close EC3)
+		return EmailList
+	}
+	CATCH error {
+		zw error
+	}
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="CopyToObject">
+<FormalSpec>object:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set object.ID = ..%Id()
+
+	set object.Address = ..Address
+	
+	set object.MessageId = ..MessageId
+
+	set object.Label = ..Label
+
+	set object.Subject = ..Subject
+	
+	set object.Content = ..Content
+	
+	set object.ReceiveDate = ..ReceiveDate
+	
+	set object.Probability = ..Probability
+
+	return $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="CopyFromObject">
+<FormalSpec>object:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	set ..Address = object.Address
+	
+	set ..MessageId = object.MessageId
+
+	set ..Label = object.Label
+
+	set ..Subject = object.Subject
+	
+	set ..Content = object.Content
+	
+	set ..ReceiveDate = $PIECE($HOROLOG, ",", 1)
+	
+	set ..Probability = object.Probability
+
+	return $$$OK
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DataLocation>^Email.EmailListD</DataLocation>
+<DefaultData>EmailListDefaultData</DefaultData>
+<IdLocation>^Email.EmailListD</IdLocation>
+<IndexLocation>^Email.EmailListI</IndexLocation>
+<StreamLocation>^Email.EmailListS</StreamLocation>
+<ExtentSize>11</ExtentSize>
+<Data name="EmailListDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>Address</Value>
+</Value>
+<Value name="3">
+<Value>Label</Value>
+</Value>
+<Value name="4">
+<Value>Subject</Value>
+</Value>
+<Value name="5">
+<Value>Content</Value>
+</Value>
+<Value name="6">
+<Value>ReceiveDate</Value>
+</Value>
+<Value name="7">
+<Value>MessageId</Value>
+</Value>
+<Value name="8">
+<Value>Probability</Value>
+</Value>
+</Data>
+<Property name="%%CLASSNAME">
+<Selectivity>100.0000%</Selectivity>
+<AverageFieldSize>1</AverageFieldSize>
+</Property>
+<Property name="%%ID">
+<Selectivity>1</Selectivity>
+<AverageFieldSize>1.18</AverageFieldSize>
+</Property>
+<Property name="Address">
+<Selectivity>9.0909%</Selectivity>
+<AverageFieldSize>5.64</AverageFieldSize>
+</Property>
+<Property name="Content">
+<Selectivity>9.0909%</Selectivity>
+<AverageFieldSize>4.55</AverageFieldSize>
+</Property>
+<Property name="Label">
+<Selectivity>33.3333%</Selectivity>
+<AverageFieldSize>1</AverageFieldSize>
+</Property>
+<Property name="ReceiveDate">
+<Selectivity>9.0909%</Selectivity>
+<AverageFieldSize>5</AverageFieldSize>
+</Property>
+<Property name="Subject">
+<Selectivity>9.0909%</Selectivity>
+<AverageFieldSize>4.55</AverageFieldSize>
+</Property>
+<SQLMap name="IDKEY">
+<BlockCount>-4</BlockCount>
+</SQLMap>
+</Storage>
+</Class>
+
+
+<Class name="Email.GenerateReport">
+<Description>
+</Description>
+<ClassType>persistent</ClassType>
+<ProcedureBlock>1</ProcedureBlock>
+<Super>Ens.BusinessProcessBPL</Super>
+<TimeCreated>65268,37310.254653</TimeCreated>
+
+<XData name="BPL">
+<Description>
+BPL Definition</Description>
+<XMLNamespace>http://www.intersystems.com/bpl</XMLNamespace>
+<Data><![CDATA[
+<process language='objectscript' request='Email.CheckEmailStatusRequest' response='Email.CheckEmailStatusResponse' height='2000' width='2000' >
+<sequence xend='200' yend='800' >
+<call name='Get Statistics' target='Email.GetStatistics' async='1' xpos='200' ypos='250' >
+<request type='Email.CheckEmailStatusRequest' >
+<assign property="callrequest.Date" value="request.Date" action="set" />
+</request>
+<response type='Email.CheckEmailStatusResponse' >
+<assign property="response.SpamEmails" value="callresponse.SpamEmails" action="set" />
+<assign property="response.FlaggedEmails" value="callresponse.FlaggedEmails" action="set" />
+<assign property="response.Date" value="callresponse.Date" action="set" />
+<assign property="request.Date" value="callresponse.Date" action="set" />
+<assign property="response.Statistics" value="callresponse.Statistics" action="set" />
+</response>
+</call>
+<sync name='Wait for Response' calls='Get Statistics' type='all' xpos='200' ypos='350' />
+<if name='Check Condition' condition='response.SpamEmails.Emails.%IsDefined("MessageId") || response.FlaggedEmails.Emails.%IsDefined("MessageId")' xpos='200' ypos='450' xend='200' yend='700' >
+<true>
+<call name='Send Email' target='Email.SendDailyReport' async='1' xpos='335' ypos='600' >
+<request type='Email.SendEmailRequest' >
+<assign property="callrequest.Contents.SpamEmails" value="response.SpamEmails" action="set" />
+<assign property="callrequest.Contents.FlaggedEmails" value="response.FlaggedEmails" action="set" />
+<assign property="callrequest.Contents.Statistics" value="response.Statistics" action="set" />
+<assign property="callrequest.Contents.Date" value="response.Date" action="set" />
+<assign property="callrequest.Date" value="response.Date" action="set" />
+</request>
+<response type='Ens.Response' />
+</call>
+</true>
+</if>
+</sequence>
+</process>
+]]></Data>
+</XData>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+</Storage>
+</Class>
+
+
+<Class name="Email.GetStatistics">
+<Super>Ens.BusinessOperation</Super>
+<TimeCreated>65268,34084.009461</TimeCreated>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Method name="GetStatisticsFromIRIS">
+<FormalSpec>pRequest:Email.CheckEmailStatusRequest,pResponse:Email.CheckEmailStatusResponse</FormalSpec>
+<Implementation><![CDATA[
+	set pResponse = ##class(Email.CheckEmailStatusResponse).%New()
+	
+	set Statistics = ##class(Email.EmailList).RetrieveEmailStatistics(pRequest.Date,pRequest.Date)
+	
+	set SpamEmails = ##class(Email.EmailList).RetrieveEmailListwithLabel(pRequest.Date,pRequest.Date,"2")
+	
+	set FlaggedEmails = ##class(Email.EmailList).RetrieveEmailListwithLabel(pRequest.Date,pRequest.Date,"3")
+
+	set pResponse.SpamEmails = SpamEmails
+	
+	set pResponse.FlaggedEmails = FlaggedEmails
+	
+	set pResponse.Statistics = Statistics
+	
+	set pResponse.Date = pRequest.Date
+	
+	quit $$$OK
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+    <MapItem MessageType="Email.CheckEmailStatusRequest">
+        <Method>GetStatisticsFromIRIS</Method>
+    </MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="Email.GmailAPI">
+<Super>EnsLib.REST.Operation</Super>
+<TimeCreated>65247,36102.067149</TimeCreated>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Parameter name="OAUTH2APPNAME">
+<Default>Google</Default>
+</Parameter>
+
+<Parameter name="OAUTH2ROOT">
+<Default>https://www.googleapis.com</Default>
+</Parameter>
+
+<Method name="getEmailList">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>api:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+   try {
+      // Prepare and log the call
+      // Append the city to the URL configured for adapter
+      Set tURL=..Adapter.URL_"?labelIds=INBOX&key=key=AIzaSyDo1L5jdj5twMrIWdiBpUROWEKfcQaEn1U"
+      
+      // Execute the call
+      Set tSC=..Adapter.GetURL(tURL,.tHttpResponse)
+      
+      // Return the response
+      If $$$ISERR(tSC)&&$IsObject(tHttpResponse)&&$IsObject(tHttpResponse.Data)&&tHttpResponse.Data.Size {
+         Set tSC=$$$ERROR($$$EnsErrGeneral,$$$StatusDisplayString(tSC)_":"_tHttpResponse.Data.Read())
+      }
+      Quit:$$$ISERR(tSC)
+      If $IsObject(tHttpResponse) {
+         // Instantiate the response object
+         set pResponse = ##class(Email.RESTGmailResponse).%New()
+         // Convert JSON into a Proxy Object
+         set tSC = ..JSONStreamToObject(tHttpResponse.Data, .tProxy)
+         if (tSC){                                
+            // Set response properties from the Proxy Object
+            set pResponse.emailId = tProxy.id
+          }
+       }
+   }catch{
+       Set tSC=$$$SystemError
+   }
+   Quit tSC
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+	<MapItem MessageType="Email.RESTGmailRequest"> 
+		<Method>getEmailList</Method>
+	</MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="Email.RESTGmailRequest">
+<Super>%Persistent,Ens.Util.MessageBodyMethods</Super>
+<TimeCreated>65247,35338.693927</TimeCreated>
+
+<Property name="userId">
+<Type>%String</Type>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DataLocation>^Email.RESTGmailRequestD</DataLocation>
+<DefaultData>RESTGmailRequestDefaultData</DefaultData>
+<IdLocation>^Email.RESTGmailRequestD</IdLocation>
+<IndexLocation>^Email.RESTGmailRequestI</IndexLocation>
+<StreamLocation>^Email.RESTGmailRequestS</StreamLocation>
+<Data name="RESTGmailRequestDefaultData">
+<Subscript>"RESTGmailRequest"</Subscript>
+<Value name="1">
+<Value>userId</Value>
+</Value>
+<Value name="2">
+<Value>%%CLASSNAME</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.RESTGmailResponse">
+<Super>%Persistent,Ens.Util.MessageBodyMethods</Super>
+<TimeCreated>65247,36678.583833</TimeCreated>
+
+<Property name="emailId">
+<Type>%String</Type>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DataLocation>^Email.RESTGmailResponseD</DataLocation>
+<DefaultData>RESTGmailResponseDefaultData</DefaultData>
+<IdLocation>^Email.RESTGmailResponseD</IdLocation>
+<IndexLocation>^Email.RESTGmailResponseI</IndexLocation>
+<StreamLocation>^Email.RESTGmailResponseS</StreamLocation>
+<Data name="RESTGmailResponseDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>emailId</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.RESTOperations">
+<IncludeCode>%occErrors</IncludeCode>
+<Super>%CSP.REST</Super>
+<TimeCreated>65245,35290.420322</TimeCreated>
+
+<XData name="UrlMap">
+<XMLNamespace>http://www.intersystems.com/urlmap</XMLNamespace>
+<Data><![CDATA[
+<Routes>
+
+<Route Url="/emaillist" Method="POST" Call="CreateEmail" Cors="true"/>
+
+<Route Url="/emaillist/:ID" Method="GET" Call="RetrieveEmail" Cors="true"/>
+
+<Route Url="/emaillist/:ID" Method="DELETE" Call="DeleteEmail" Cors="true"/>
+
+<Route Url="/emaillist/nlpflagged" Method="POST" Call="FlaggedByNLP" Cors="true"/>
+
+<Route Url="/emaillist/nlppassed" Method="POST" Call="PassedNLP" Cors="true"/>
+
+<Route Url="/emaillist/label" Method="POST" Call="RetrieveEmailwithLabel" Cors="true"/>
+
+<Route Url="/emaillist/statistics" Method="POST" Call="RetrieveEmailStatistics" Cors="true"/>
+
+<Route Url="/spamlist/:ID" Method="PUT" Call="EditSPAM" Cors="true"/>
+
+<Route Url="/spamlist" Method="POST" Call="NewSPAM" Cors="true"/>
+
+<Route Url="/spamlist/check" Method="POST" Call="CheckSPAM" Cors="true"/>
+
+<Route Url="/spamlist/:ID" Method="GET" Call="RetrieveSPAM" Cors="true"/>
+
+<Route Url="/spamlist/:ID" Method="DELETE" Call="DeleteSPAM" Cors="true"/>
+
+<Route Url="/spamlist" Method="GET" Call="RetrieveSPAMList" Cors="true"/>
+
+<Route Url="/emaillist/markspam" Method="POST" Call="MarkSPAM" Cors="true"/>
+
+<Route Url="/emaillist/unmarkspam" Method="POST" Call="UnmarkSPAM" Cors="true"/>
+
+<Route Url="/dataset/newentry" Method="POST" Call="NewEntry" Cors="true"/>
+
+<Route Url="/dataset" Method="GET" Call="RetrieveDataset" Cors="true"/>
+
+<Route Url="/dataset/:ID" Method="DELETE" Call="DeleteEntry" Cors="true"/>
+
+</Routes>
+]]></Data>
+</XData>
+
+<Method name="NewEntry">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+	
+	set status = ##class(Email.TrainingDataset).CreateNew(data.MessageId, data.Text, data.Spam)
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="DeleteEntry">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>MessageId:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+	
+	set id = ##class(Email.TrainingDataset).SearchDataID(MessageId)
+		
+	set status = ##class(Email.TrainingDataset).DeleteData(id)
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveDataset">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim dataset as Email.TrainingDataset
+
+	set dataset = ##class(Email.TrainingDataset).RetrieveAllDataset()
+	
+	if (dataset '= "") {
+		
+		w dataset.%ToJSON()
+		
+	}
+
+	return $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="PassedNLP">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+	
+	set status = ##class(Email.EmailList).SetEmailLabel(data.MessageId, "1")
+	
+	set status =  ##class(Email.EmailList).SetProbability(data.MessageId, data.Probability)
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="FlaggedByNLP">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+	
+	set status = ##class(Email.EmailList).SetEmailLabel(data.MessageId, "3")
+	
+	set status =  ##class(Email.EmailList).SetProbability(data.MessageId, data.Probability)
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="MarkSPAM">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+	
+	set status = ##class(Email.EmailList).SetEmailLabel(data.MessageId, "2")
+	
+	do ##class(Email.SPAMAddress).AddNewSPAM(data.Address)
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="UnmarkSPAM">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+	
+	set status = ##class(Email.EmailList).SetEmailLabel(data.MessageId, "1")
+	
+	set id = ##class(Email.SPAMAddress).SearchSPAMaddressID(data.Address)
+	
+	if id '= 0 {
+		do ##class(Email.SPAMAddress).DeleteSPAM(id)
+	}
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveEmail">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>EmailID:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	#dim email as Email.EmailList
+
+	set email = ##class(Email.EmailList).%OpenId(EmailID, , .st)
+
+	if (st = 1) {
+
+		set jsonEmail = {}
+
+		set st = email.CopyToObject(jsonEmail)
+
+		write jsonEmail.%ToJSON()
+
+	}
+
+	return st
+]]></Implementation>
+</Method>
+
+<Method name="CheckSPAM">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+
+	#dim spam as Email.SPAMAddress
+
+	set st = ##class(Email.SPAMAddress).SearchSPAMaddressID(data.Address)
+	
+	if (st '= 0) {
+		do ##class(Email.EmailList).SetEmailLabel(data.MessageId, "2")
+		set jsonResponse = {}
+		set jsonResponse.result = 1
+		write jsonResponse.%ToJSON()
+		return $$$OK
+	}
+	else {
+#;		Set Body = ##class(%ZEN.proxyObject).%New()
+#;		Set Body.raw = data.Content
+#;		Set Request= ##class(%Net.HttpRequest).%New()
+#;		Set Request.Server = "localhost"
+#;		Set Request.Port = 5000
+#;		Set Request.ContentType = "application/json"
+#;		Set Request.Location = "predict"
+#;		Set Status = ##class(%ZEN.Auxiliary.jsonProvider).%WriteJSONStreamFromObject(Request.EntityBody, Body)
+#;		Set Status = Request.Post(,2)
+		set jsonResponse = {}
+		set jsonResponse.result = 0
+		write jsonResponse.%ToJSON()
+		return $$$OK
+	}
+]]></Implementation>
+</Method>
+
+<Method name="CreateEmail">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+	
+	set duplicated = ##class(Email.EmailList).SearchMessageID(data.MessageId)
+	
+	if duplicated '= 0 {
+		return $$$OK
+	}
+	
+	#dim email as Email.EmailList
+
+	set email = ##class(Email.EmailList).%New()
+
+	do email.CopyFromObject(data)
+
+	set st = email.%Save()
+
+	if (st = 1) {
+
+		set jsonEmail = {}
+
+		set st = email.CopyToObject(jsonEmail)
+
+		write jsonEmail.%ToJSON()
+
+	}
+	return st
+]]></Implementation>
+</Method>
+
+<Method name="DeleteEmail">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>EmailID:%Integer</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	#dim %response As %CSP.Response
+
+	set st = ##class(Email.EmailList).%DeleteId(EmailID)
+
+	set %response.Status = ..#HTTP204NOCONTENT
+
+	return st
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveSPAM">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>SPAMID:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	#dim spam as SPAMAddress
+	
+	set spam = ##class(Email.SPAMAddress).%OpenId(SPAMID, , .st)
+
+	if (st = 1) {
+
+		set jsonSPAM = {}
+
+		set st = spam.CopyToObject(jsonSPAM)
+
+		write jsonSPAM.%ToJSON()
+
+	}
+
+	return st
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveSPAMList">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim spamlist as Email.SPAMAddress
+
+	set spamlist = ##class(Email.SPAMAddress).RetrieveSPAMList()
+	
+	if (spamlist '= "") {
+		
+		w spamlist.%ToJSON()
+		
+	}
+
+	return $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveEmailwithLabel">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+	
+	set emaillist = ##class(Email.EmailList).RetrieveEmailListwithLabel($ZDATEH(data.startDate,5), $ZDATEH(data.endDate,5), data.Label)
+	
+	if (emaillist '= "") {
+		
+		w emaillist.%ToJSON()
+		
+		return $$$OK
+	}
+	
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveEmailStatistics">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+	
+	set emaillist = ##class(Email.EmailList).RetrieveEmailStatistics($ZDATEH(data.startDate,5), $ZDATEH(data.endDate,5))
+	
+	if (emaillist '= "") {
+		
+		w emaillist.%ToJSON()
+		
+		return $$$OK
+		
+	}
+
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="EditSPAM">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>SPAMID:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+
+	#dim spam as Email.SPAMAddress
+
+	set st = ##class(Email.SPAMAddress).UpdateSPAM(SPAMID, data.Address)
+
+	if (st = 1) {
+		
+		set spam = ##class(Email.SPAMAddress).%OpenId(SPAMID)
+
+		set jsonSPAM = {}
+
+		set st = spam.CopyToObject(jsonSPAM)
+
+		write jsonSPAM.%ToJSON()
+
+	}
+
+	return st
+]]></Implementation>
+</Method>
+
+<Method name="NewSPAM">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %request As %CSP.Request
+
+	set data = ##class(%DynamicObject).%FromJSON(%request.Content)
+
+	#dim spam as Email.SPAMAddress
+
+	set st = ##class(Email.SPAMAddress).AddNewSPAM(data.Address)
+
+	if (st = 1) {
+
+		write data.%ToJSON()
+
+	}
+
+	return st
+]]></Implementation>
+</Method>
+
+<Method name="DeleteSPAM">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>SPAMID:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim %response As %CSP.Response
+
+	set st = ##class(Email.SPAMAddress).%DeleteId(SPAMID)
+
+	set %response.Status = ..#HTTP204NOCONTENT
+
+	return st
+]]></Implementation>
+</Method>
+
+<Method name="Http500">
+<Description>
+
+Issue a '500' error and give some indication as to what occurred
+
+(Overridden to interpret some particular %Status values as different HTTP status codes.)</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>ex:%Exception.AbstractException</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	set st = ex.AsStatus()
+
+	set code = +$System.Status.GetErrorCodes(st)
+
+    	return ..ReportHttpStatusCode($case(code,
+
+    			$$$LoadObjectNotFound  :..#HTTP404NOTFOUND,
+
+    			$$$DeleteObjectNotFound:..#HTTP404NOTFOUND,
+
+    			$$$AccessDenied        :..#HTTP403FORBIDDEN,
+
+    			                       :..#HTTP500INTERNALSERVERERROR), st)
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="Email.Request.OutboundPost">
+<Super>Ens.Request</Super>
+<TimeCreated>65267,35397.025322</TimeCreated>
+
+<Property name="LengthOfDataset">
+<Type>%Integer</Type>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>OutboundPostDefaultData</DefaultData>
+<Data name="OutboundPostDefaultData">
+<Structure>listnode</Structure>
+<Subscript>"OutboundPost"</Subscript>
+<Value name="1">
+<Value>LengthOfDataset</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.Response.OutboundPost">
+<Super>Ens.Response</Super>
+<TimeCreated>65267,35468.068549</TimeCreated>
+
+<Property name="dataset">
+<Type>%GlobalCharacterStream</Type>
+<Parameter name="CONTENT" value="MIXED"/>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>OutboundPostDefaultData</DefaultData>
+<Data name="OutboundPostDefaultData">
+<Structure>listnode</Structure>
+<Subscript>"OutboundPost"</Subscript>
+<Value name="1">
+<Value>dataset</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.SPAMAddress">
+<Super>%Persistent,%Populate,%XML.Adaptor</Super>
+<TimeCreated>65244,52727.617765</TimeCreated>
+
+<Property name="Address">
+<Type>%String</Type>
+<Required>1</Required>
+<Parameter name="MAXLEN" value="100"/>
+</Property>
+
+<Property name="AddedDate">
+<Type>%Date</Type>
+<Required>1</Required>
+</Property>
+
+<Property name="NumBlocked">
+<Type>%Integer</Type>
+<InitialExpression>0</InitialExpression>
+</Property>
+
+<Property name="WildCard">
+<Type>%Boolean</Type>
+<Required>1</Required>
+</Property>
+
+<Method name="AddNewSPAM">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Address:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	
+	set status = $$$OK
+	
+	set IsExisted = ##class(Email.SPAMAddress).SearchSPAMaddressID(Address)
+	
+	if IsExisted '= 0
+	{
+		return $$$OK	
+	}
+	
+	set SPAMaddress = ##class(Email.SPAMAddress).%New()
+	
+	set SPAMaddress.Address = Address
+	
+	set SPAMaddress.AddedDate = $PIECE($HOROLOG, ",", 1)
+	
+	if $EXTRACT(Address,1) = "*"
+	{
+		set SPAMaddress.WildCard = 1
+	}
+	else 
+	{
+		set SPAMaddress.WildCard = 0
+	}
+	
+	set status = SPAMaddress.%Save()
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="DeleteSPAM">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>AddressID:%Integer</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set status = ##class(Email.SPAMAddress).%DeleteId(AddressID)
+
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="UpdateSPAM">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>AddressID:%Integer,Address:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set spam = ##class(Email.SPAMAddress).%OpenId(AddressID)
+	
+	set spam.Address = Address
+	
+	set spam.AddedDate = $PIECE($HOROLOG, ",", 1)
+	
+	if $EXTRACT(Address,1) = "*"
+	{
+		set spam.WildCard = 1
+	}
+	else 
+	{
+		set spam.WildCard = 0
+	}
+	
+	set status = spam.%Save()
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="SearchSPAMaddressID">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Address:%String</FormalSpec>
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+	set position = $FIND(Address, "@")
+	
+	set smtp = $EXTRACT(Address, position-1, $LENGTH(Address))
+	
+	set smtp = "*"_smtp
+	
+	TRY{
+		&sql(declare EC cursor for SELECT ID FROM Email.SPAMaddress where Address = :smtp)
+		&sql(open EC)
+		for {
+			&sql(fetch EC into :id)
+			quit:(SQLCODE '= 0)
+		}
+		&sql(close EC)
+		
+		if id {
+			set spam = ##class(Email.SPAMAddress).%OpenId(id)
+			set spam.NumBlocked = spam.NumBlocked + 1
+			do spam.%Save()
+			return id
+		}
+	}
+	CATCH error {
+		TRY{
+			&sql(declare EC1 cursor for SELECT ID FROM Email.SPAMaddress where Address = :Address)
+			&sql(open EC1)
+			for {
+				&sql(fetch EC1 into :id)
+				quit:(SQLCODE '= 0)
+			}
+			&sql(close EC1)
+			
+			if id {
+				set spam = ##class(Email.SPAMAddress).%OpenId(id)
+				set spam.NumBlocked = spam.NumBlocked + 1
+				do spam.%Save()
+				return id
+			}
+		}
+		CATCH error {
+			return 0
+		}
+		return 0
+	}
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveSPAMList">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%DynamicObject</ReturnType>
+<Implementation><![CDATA[
+	TRY
+	{
+		&sql(declare EC2 cursor for SELECT ID, Address, NumBlocked, AddedDate, WildCard FROM Email.SPAMAddress)
+		&sql(open EC2)
+		set SPAMList = {"SPAM": []}
+		for {
+			&sql(fetch EC2 into :id, :address, :numblocked, :addeddate, :wildcard)
+			quit:(SQLCODE '= 0)
+			set SPAM = {}, SPAM.Id = id, SPAM.Address = address, SPAM.NumBlocked = numblocked, SPAM.AddedDate = $ZDATETIME(addeddate), SPAM.WildCard = wildcard
+			do SPAMList.SPAM.%Push(SPAM)
+		}
+		&sql(close EC2)
+		return SPAMList
+	}
+	CATCH error {
+
+	}
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="CopyToObject">
+<FormalSpec>object:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set object.ID = ..%Id()
+
+	set object.Address = ..Address
+
+	set object.AddedDate = ..AddedDate
+	
+	set object.WildCard = ..WildCard
+
+	return $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="CopyFromObject">
+<FormalSpec>object:%DynamicObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	set ..Address  = object.Address
+
+	set ..WildCard = object.WildCard
+	
+	set ..AddedDate = $PIECE($HOROLOG, ",", 1)
+
+	return $$$OK
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DataLocation>^Email.SPAMAddressD</DataLocation>
+<DefaultData>SPAMAddressDefaultData</DefaultData>
+<IdLocation>^Email.SPAMAddressD</IdLocation>
+<IndexLocation>^Email.SPAMAddressI</IndexLocation>
+<StreamLocation>^Email.SPAMAddressS</StreamLocation>
+<Data name="SPAMAddressDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>Address</Value>
+</Value>
+<Value name="3">
+<Value>AddedDate</Value>
+</Value>
+<Value name="4">
+<Value>WildCard</Value>
+</Value>
+<Value name="5">
+<Value>NumBlocked</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.ScanDataset">
+<Super>Ens.BusinessService</Super>
+<TimeCreated>65267,37861.449568</TimeCreated>
+
+<Method name="OnProcessInput">
+<FormalSpec>pInput:%RegisteredObject,*pOutput:%RegisteredObject</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	set tRequest = ##class(Email.CheckDatasetRequest).%New()
+	set tRequest.IsTrained = 0
+	Set tSC = ..SendRequestAsync("Email.DetermineTraining",tRequest)
+	return $$$OK
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="Email.SendDailyReport">
+<Super>Ens.BusinessOperation</Super>
+<TimeCreated>65268,35613.005227</TimeCreated>
+
+<Parameter name="ADAPTER">
+<Default>EnsLib.EMail.OutboundAdapter</Default>
+</Parameter>
+
+<Property name="Adapter">
+<Type>EnsLib.EMail.OutboundAdapter</Type>
+</Property>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Method name="SendEmail">
+<FormalSpec>pRequest:Email.SendEmailRequest,*pResponse:Ens.Response</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set email = ##class(%Net.MailMessage).%New()
+	do email.TextData.WriteLine("To see the details of blocked emails go to: http://localhost:3000")
+	do email.TextData.WriteLine("")
+    //Get info from pReq
+    if (pRequest.Contents.SpamEmails.Emails.%IsDefined("MessageId"))
+    {
+		do email.TextData.WriteLine("Emails blocked by SPAM addresses list: ")
+	    set iter = pRequest.Contents.SpamEmails.Emails.%GetIterator()
+	    while iter.%GetNext(.key , .value ) 
+	    {
+	   		do email.TextData.WriteLine("Message ID: "_value.MessageId)
+	    	do email.TextData.WriteLine("Address: "_value.Address)
+	    	do email.TextData.WriteLine("Subject: "_value.Subject)
+	    	do email.TextData.WriteLine("Receive Date: "_value.ReceiveDate)
+	    	do email.TextData.WriteLine("-----------------------------------------")
+    	}
+    }
+    if (pRequest.Contents.FlaggedEmails.Emails.%IsDefined("MessageId"))
+    {
+	    do email.TextData.WriteLine("")
+	    do email.TextData.WriteLine("Emails flagged by Natural Language Processing: ")
+	    set iter = pRequest.Contents.FlaggedEmails.Emails.%GetIterator()
+	    while iter.%GetNext(.key , .value ) 
+	    {
+	   		do email.TextData.WriteLine("Message ID: "_value.MessageId)
+	    	do email.TextData.WriteLine("Address: "_value.Address)
+	    	do email.TextData.WriteLine("Subject: "_value.Subject)
+	    	do email.TextData.WriteLine("Receive Date: "_value.ReceiveDate)
+	    	do email.TextData.WriteLine("Probability: "_value.Probability)
+	    	do email.TextData.WriteLine("-----------------------------------------")
+    	}
+    }
+    Set email.Subject=$ZDATETIME($PIECE($HOROLOG, ",", 1))_" Email Report"
+
+    //simple case--do not check for failed recipients
+    Set tSc = ..Adapter.SendMail(email)
+
+    //send an empty response message after message is sent
+    Set pResponse = ##class(Ens.Response).%New()
+
+    Quit tSc
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+    <MapItem MessageType="Email.SendEmailRequest">
+        <Method>SendEmail</Method>
+    </MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="Email.SendEmailRequest">
+<Super>Ens.Request</Super>
+<TimeCreated>65268,35390.51284</TimeCreated>
+
+<Property name="Date">
+<Type>%Date</Type>
+</Property>
+
+<Property name="Contents">
+<Type>Email.CheckEmailStatusResponse</Type>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>SendEmailRequestDefaultData</DefaultData>
+<Data name="SendEmailRequestDefaultData">
+<Structure>listnode</Structure>
+<Subscript>"SendEmailRequest"</Subscript>
+<Value name="1">
+<Value>Date</Value>
+</Value>
+<Value name="2">
+<Value>Contents</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="Email.TrainModel">
+<Super>Ens.BusinessOperation</Super>
+<TimeCreated>65267,34834.187239</TimeCreated>
+
+<Parameter name="ADAPTER">
+<Default>EnsLib.HTTP.OutboundAdapter</Default>
+</Parameter>
+
+<Property name="Adapter">
+<Type>EnsLib.HTTP.OutboundAdapter</Type>
+</Property>
+
+<Parameter name="INVOCATION">
+<Default>Queue</Default>
+</Parameter>
+
+<Method name="PostDataset">
+<FormalSpec>pRequest:Email.Request.OutboundPost,pResponse:Email.Response.OutboundPost</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    set tResponse = ##class(%Net.HttpResponse).%New()
+    set dataset = ##class(Email.TrainingDataset).RetrieveTrainDataset()
+    set jsonObject = {"text": [],"spam": []}
+	set iter = dataset.Dataset.%GetIterator()
+    while iter.%GetNext(.key , .value ) {
+   		do jsonObject.text.%Push(value.Text)
+    	do jsonObject.spam.%Push(value.Spam)
+    }
+    if pRequest.LengthOfDataset '= 0 {
+    	set tsc = ..Adapter.Post(.tResponse,,jsonObject.%ToJSON())
+    }
+    set pResponse = ##class(Email.Response.OutboundPost).%New()
+    return $$$OK
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+  <MapItem MessageType="Email.Request.OutboundPost">
+    <Method>PostDataset</Method>
+  </MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="Email.TrainingDataset">
+<Super>%Persistent,%XML.Adaptor</Super>
+<TimeCreated>65265,52050.303186</TimeCreated>
+
+<Property name="MessageId">
+<Type>%String</Type>
+<Required>1</Required>
+</Property>
+
+<Property name="Text">
+<Type>%String</Type>
+<Required>1</Required>
+<Parameter name="MAXLEN" value="1000"/>
+</Property>
+
+<Property name="Spam">
+<Type>%Boolean</Type>
+<Required>1</Required>
+</Property>
+
+<Property name="IsTrained">
+<Type>%Boolean</Type>
+<Required>1</Required>
+</Property>
+
+<Method name="SetAllIsTrained">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+</Method>
+
+<Method name="CreateNew">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>MessageId:%String,Text:%String,Spam:%Boolean</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set IsExisted = ##class(Email.TrainingDataset).SearchDataID(MessageId)
+	
+	if IsExisted '= 0
+	{
+		return $$$OK	
+	}
+	
+	set data = ##class(Email.TrainingDataset).%New()
+	
+	set data.MessageId = MessageId
+	
+	set data.Text = Text
+	
+	set data.Spam = Spam
+	
+	set data.IsTrained = 0
+	
+	set status = data.%Save()
+	
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="DeleteData">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>DataID:%Integer</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set status = ##class(Email.TrainingDataset).%DeleteId(DataID)
+
+	return status
+]]></Implementation>
+</Method>
+
+<Method name="SearchDataID">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>MessageId:%String</FormalSpec>
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+	TRY{
+		&sql(declare EC cursor for SELECT ID FROM Email.TrainingDataset where MessageId = :MessageId)
+		&sql(open EC)
+		for {
+			&sql(fetch EC into :id)
+			quit:(SQLCODE '= 0)
+		}
+		&sql(close EC)
+		
+		if id {
+			return id
+		}
+	}
+	CATCH e {
+		return 0
+	}
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveAllDataset">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%DynamicObject</ReturnType>
+<Implementation><![CDATA[
+	TRY
+	{
+		&sql(declare EC0 cursor for SELECT MessageId, Text, Spam, IsTrained FROM Email.TrainingDataset)
+		&sql(open EC0)
+		set Dataset = {"Dataset": []}
+		for {
+			&sql(fetch EC0 into :messageid, :text, :spam, :istrained)
+			quit:(SQLCODE '= 0)
+			set Data = {}, Data.MessageId = messageid, Data.Text = text, Data.Spam = spam, Data.IsTrained = istrained
+			do Dataset.Dataset.%Push(Data)
+		}
+		&sql(close EC0)
+		return Dataset
+	}
+	CATCH error {
+		zw error
+	}
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveTrainDataset">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%DynamicObject</ReturnType>
+<Implementation><![CDATA[
+	TRY
+	{
+		&sql(declare EC2 cursor for SELECT MessageId, Text, Spam, IsTrained FROM Email.TrainingDataset WHERE IsTrained = 0)
+		&sql(open EC2)
+		set Dataset = {"Dataset": []}
+		for {
+			&sql(fetch EC2 into :messageid, :text, :spam, :istrained)
+			quit:(SQLCODE '= 0)
+			set Data = {}, Data.MessageId = messageid, Data.Text = text, Data.Spam = spam, Data.IsTrained = istrained
+			do Dataset.Dataset.%Push(Data)
+		}
+		&sql(close EC2)
+		return Dataset
+	}
+	CATCH error {
+		zw error
+	}
+	return 0
+]]></Implementation>
+</Method>
+
+<Method name="RetrieveDatasetLength">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>IsTrianed:%Boolean</FormalSpec>
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+	TRY
+	{
+		&sql(declare EC1 cursor for SELECT COUNT(IsTrained) FROM Email.TrainingDataset WHERE IsTrained = :IsTrianed)
+		&sql(open EC1)
+		set Count = 0
+		for {
+			&sql(fetch EC1 into :count)
+			quit:(SQLCODE '= 0)
+			set Count = count
+		}
+		&sql(close EC1)
+		return Count
+	}
+	CATCH error {
+		zw error
+	}
+	return 0
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DataLocation>^Email.TrainingDatasetD</DataLocation>
+<DefaultData>TrainingDatasetDefaultData</DefaultData>
+<IdLocation>^Email.TrainingDatasetD</IdLocation>
+<IndexLocation>^Email.TrainingDatasetI</IndexLocation>
+<StreamLocation>^Email.TrainingDatasetS</StreamLocation>
+<Data name="TrainingDatasetDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>Text</Value>
+</Value>
+<Value name="3">
+<Value>Spam</Value>
+</Value>
+<Value name="4">
+<Value>IsTrained</Value>
+</Value>
+<Value name="5">
+<Value>MessageId</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Project name="EmailIntel" LastModified="2019-09-18 15:21:09.619381">
+  <Items>
+    <ProjectItem name="Email.CheckDataset" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.CheckDatasetRequest" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.CheckDatasetResponse" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.CheckEmailStatusRequest" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.CheckEmailStatusResponse" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.DailyReport" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.DetermineTraining" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.EmailList" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.GenerateReport" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.GetStatistics" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.GmailAPI" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.RESTGmailRequest" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.RESTGmailResponse" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.RESTOperations" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.Request.OutboundPost" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.Response.OutboundPost" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.SPAMAddress" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.ScanDataset" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.SendDailyReport" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.SendEmailRequest" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.TrainModel" type="CLS"></ProjectItem>
+    <ProjectItem name="Email.TrainingDataset" type="CLS"></ProjectItem>
+    <ProjectItem name="Untitled1.DTL" type="DTL"></ProjectItem>
+    <ProjectItem name="Untitled2.DTL" type="DTL"></ProjectItem>
+    <ProjectItem name="User.LabelList" type="CLS"></ProjectItem>
+    <ProjectItem name="csp/email/Index.csp" type="CSP"></ProjectItem>
+    <ProjectItem name="Email.EmailIntelligence" type="CLS"></ProjectItem>
+  </Items>
+</Project>
+
+
+<CSP name="Index.csp" application="/csp/email/" default="1"><![CDATA[
+<html>
+<head>
+
+<!-- Put your page Title here -->
+<title>	Gmail API Quickstart </title>
+</head>
+
+
+
+<body>
+<p>Gmail API Quickstart</p>
+
+<!--Add buttons to initiate auth sequence and sign out-->
+<button id="authorize_button" style="display: none;">Authorize</button>
+<button id="signout_button" style="display: none;">Sign Out</button>
+
+<pre id="content" style="white-space: pre-wrap;"></pre>
+<script type="text/javascript">
+  // Client ID and API key from the Developer Console
+  var CLIENT_ID = '32438553337-io9l8sfe0rhlmnta9soufhp14dugd6d1.apps.googleusercontent.com';
+  var API_KEY = 'AIzaSyDo1L5jdj5twMrIWdiBpUROWEKfcQaEn1U';
+
+  // Array of API discovery doc URLs for APIs used by the quickstart
+  var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest"];
+
+  // Authorization scopes required by the API; multiple scopes can be
+  // included, separated by spaces.
+  var SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
+
+  var authorizeButton = document.getElementById('authorize_button');
+  var signoutButton = document.getElementById('signout_button');
+
+  /**
+   *  On load, called to load the auth2 library and API client library.
+   */
+  function handleClientLoad() {
+    gapi.load('client:auth2', initClient);
+  }
+
+  /**
+   *  Initializes the API client library and sets up sign-in state
+   *  listeners.
+   */
+  function initClient() {
+    gapi.client.init({
+      apiKey: API_KEY,
+      clientId: CLIENT_ID,
+      discoveryDocs: DISCOVERY_DOCS,
+      scope: SCOPES
+    }).then(function () {
+      // Listen for sign-in state changes.
+      gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+
+      // Handle the initial sign-in state.
+      updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+      authorizeButton.onclick = handleAuthClick;
+      signoutButton.onclick = handleSignoutClick;
+    }, function(error) {
+      appendPre(JSON.stringify(error, null, 2));
+    });
+  }
+
+  /**
+   *  Called when the signed in status changes, to update the UI
+   *  appropriately. After a sign-in, the API is called.
+   */
+  function updateSigninStatus(isSignedIn) {
+    if (isSignedIn) {
+      authorizeButton.style.display = 'none';
+      signoutButton.style.display = 'block';
+      listEmails();
+      openEmail();
+    } else {
+      authorizeButton.style.display = 'block';
+      signoutButton.style.display = 'none';
+    }
+  }
+
+  /**
+   *  Sign in the user upon button click.
+   */
+  function handleAuthClick(event) {
+    gapi.auth2.getAuthInstance().signIn();
+  }
+
+  /**
+   *  Sign out the user upon button click.
+   */
+  function handleSignoutClick(event) {
+    gapi.auth2.getAuthInstance().signOut();
+  }
+
+  /**
+   * Append a pre element to the body containing the given message
+   * as its text node. Used to display the results of the API call.
+   *
+   * @param {string} message Text to be placed in pre element.
+   */
+  function appendPre(message) {
+    var pre = document.getElementById('content');
+    var textContent = document.createTextNode(message + '\n');
+    pre.appendChild(textContent);
+  }
+
+  /**
+   * Print all Labels in the authorized user's inbox. If no labels
+   * are found an appropriate message is printed.
+   */
+  function listLabels() {
+    gapi.client.gmail.users.labels.list({
+      'userId': 'me'
+    }).then(function(response) {
+      var labels = response.result.labels;
+      appendPre('Labels:');
+
+      if (labels && labels.length > 0) {
+        for (i = 0; i < labels.length; i++) {
+          var label = labels[i];
+          appendPre(label.name)
+        }
+      } else {
+        appendPre('No Labels found.');
+      }
+    });
+  }
+  
+  function listEmails() {
+    gapi.client.gmail.users.messages.list({
+      'userId': 'me'
+    }).then(function(response) {
+      var messages = response.result.messages;
+      appendPre('Emails:');
+
+      if (messages && messages.length > 0) {
+        for (i = 0; i < messages.length; i++) {
+          var message = messages[i];
+          appendPre(message.id)
+        }
+      } else {
+        appendPre('No Emails found.');
+      }
+    });
+  }
+  
+  function openEmail() {
+    gapi.client.gmail.users.messages.get({
+      'userId': 'me',
+      'id': '16c6f59da42007f4'
+    }).then(function(response) {
+      var email = response.result.payload.parts[0].body.data;
+      appendPre('16c6f59da42007f4');
+
+      if (email) {
+	    email = email.replace(/-/g, '+').replace(/_/g, '/').replace(/\s/g, '');
+        var decoded = decodeURIComponent(escape(window.atob(email)))
+      	appendPre(decoded);
+      	
+      } else {
+        appendPre('Email not found.');
+      }
+    });
+  }
+
+</script>
+
+<script async defer src="https://apis.google.com/js/api.js"
+  onload="this.onload=function(){};handleClientLoad()"
+  onreadystatechange="if (this.readyState === 'complete') this.onload()">
+</script>
+</body>
+</html>
+]]></CSP>
+</Export>
