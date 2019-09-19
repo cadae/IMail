@@ -38,6 +38,8 @@ Additional steps may require if you want to use [Google Cloud Bucket](https://cl
 
    `pip install tensorflow`
    
+   `pip install tensorflow-hub`
+   
    `pip install flask`
    
    `pip install bert-tensorflow`
