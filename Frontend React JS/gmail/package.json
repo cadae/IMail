@@ -22,7 +22,7 @@
     "babel-core": "^7.0.0-bridge.0",
     "babel-loader": "7.1.1",
     "create-react-class": "^15.6.3",
-    "ejs": "2.4.1",
+    "ejs": "3.1.7",
     "express": "4.13.3",
     "mdbreact": "^4.19.1",
     "moment": "^2.13.0",
