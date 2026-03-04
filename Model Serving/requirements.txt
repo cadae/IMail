@@ -1,10 +1,10 @@
-﻿absl-py==0.8.0
+absl-py==0.8.0
 astor==0.8.0
 astroid==2.2.5
 autopep8==1.4.4
 bert==2.2.0
 bert-tensorflow==1.0.1
-certifi==2022.12.7
+certifi==2024.7.4
 chardet==3.0.4
 Click==7.0
 colorama==0.4.1
